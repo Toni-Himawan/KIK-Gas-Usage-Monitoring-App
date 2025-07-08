@@ -101,8 +101,12 @@ with col2:
 
             pdf.ln(10)
 
-            # Menambahkan grafik
-            st.pyplot(fig)  # Mungkin perlu ditangani dengan cara lain untuk menyimpan grafik sebagai gambar
+            # Menyimpan Grafik dalam format PNG
+            grafik_path = "/tmp/graph.png"
+            fig.savefig(grafik_path)
+
+            # Menambahkan grafik ke PDF
+            pdf.image(grafik_path, x=10, y=pdf.get_y(), w=180)
 
             # Menyimpan PDF
             pdf_output_path = "/tmp/laporan_pemakaian_gas.pdf"
