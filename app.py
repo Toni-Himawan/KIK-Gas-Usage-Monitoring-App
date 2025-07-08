@@ -103,7 +103,7 @@ with col2:
 
             ax2.set_xlabel("Bulan", fontsize=10)
             ax2.set_ylabel("Pemakaian (MMBTU)", fontsize=10)
-            ax2.set_title(f"Pemakaian Gas Januari – {label_tersedia[-1]} 2025", fontsize=12)
+            ax2.set_title(f"Pemakaian Gas Januari – {label_tersedia[-1]} ", fontsize=12)
             ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
             plt.xticks(rotation=45, fontsize=8)
             plt.yticks(fontsize=8)
