@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from fpdf import FPDF
 
 st.set_page_config(layout="wide")  # Layout full width supaya tampilan lebar
 
@@ -82,38 +81,58 @@ with col2:
             # Garis pemisah antar bagian supaya pembaca jelas ini data berbeda
             st.markdown("<hr style='border: 2px solid #333; margin: 30px 0;'>", unsafe_allow_html=True)
 
-        # Menambahkan tombol untuk generate laporan PDF
-        if st.button("Generate Laporan PDF"):
-            pdf = FPDF()
-            pdf.set_auto_page_break(auto=True, margin=15)
-            pdf.add_page()
+        bulan_2025 = [b for b in bulan_asli if pd.to_datetime(b, errors='coerce') is not pd.NaT and pd.to_datetime(b).year == 2025]
+        bulan_tersedia = []
+        for b in bulan_2025:
+            try:
+                if not df_gas[b].isnull().all() and not df_jisdor[df_jisdor["Bulan"] == b].empty:
+                    bulan_tersedia.append(b)
+            except:
+                continue
 
-            # Menambahkan judul
-            pdf.set_font("Arial", 'B', 16)
-            pdf.cell(200, 10, txt="Laporan Pemakaian Gas Tenant KIK - Juni 2025", ln=True, align="C")
-            pdf.ln(10)
+        label_tersedia = [mapping_kolom[b] for b in bulan_tersedia]
 
-            # Menambahkan data pemakaian gas
-            pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt="Data Pemakaian Gas:", ln=True)
-            for index, row in df_gas.iterrows():
-                pdf.cell(200, 10, txt=f"{row['Tenant']}: {row[selected_bulan]} MMBTU", ln=True)
+        if label_tersedia:
+            st.subheader(f"Grafik Pemakaian Gas sampai {label_tersedia[-1]}")
 
-            pdf.ln(10)
+            df_berjalan = df_gas[["Tenant"] + bulan_tersedia].copy()
 
-            # Menyimpan Grafik dalam format PNG
-            grafik_path = "/tmp/graph.png"
-            fig.savefig(grafik_path)
+            fig2, ax2 = plt.subplots(figsize=(8, 4))
+            for i, row in df_berjalan.iterrows():
+                ax2.plot(label_tersedia, row[bulan_tersedia], marker='o', label=row["Tenant"])
 
-            # Menambahkan grafik ke PDF
-            pdf.image(grafik_path, x=10, y=pdf.get_y(), w=180)
+            ax2.set_xlabel("Bulan", fontsize=10)
+            ax2.set_ylabel("Pemakaian (MMBTU)", fontsize=10)
+            ax2.set_title(f"Pemakaian Gas JANUARY – {label_tersedia[-1]}", fontsize=12)
+            ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+            plt.xticks(rotation=45, fontsize=8)
+            plt.yticks(fontsize=8)
+            plt.tight_layout()
+            st.pyplot(fig2)
+        else:
+            st.info("Data bulan untuk tahun 2025 belum tersedia atau kosong.")
 
-            # Menyimpan PDF
-            pdf_output_path = "/tmp/laporan_pemakaian_gas.pdf"
-            pdf.output(pdf_output_path)
+        st.subheader("Total Kumulatif Nilai Rekonsiliasi Selama 2025")
 
-            # Memberikan link untuk mengunduh laporan
-            with open(pdf_output_path, "rb") as f:
-                st.download_button("Unduh Laporan PDF", f, file_name="laporan_pemakaian_gas.pdf")
+        df_rekon = pd.DataFrame()
+        bulan_label_rekon = []
+        for b in bulan_tersedia:
+            try:
+                kurs = float(df_jisdor.loc[df_jisdor["Bulan"] == b, "Kurs"].values[0])
+                rekon = df_gas[b] * 0.6 * kurs - (73000000 / len(df_gas))
+                df_rekon[mapping_kolom[b]] = rekon
+                bulan_label_rekon.append(mapping_kolom[b])
+            except:
+                continue
+        df_rekon["Tenant"] = df_gas["Tenant"]
+        df_rekon = df_rekon.set_index("Tenant")
 
-        st.markdown("<hr style='border: 2px solid #333; margin: 30px 0;'>", unsafe_allow_html=True)
+        total_kumulatif = df_rekon.sum().sum()
+
+        if bulan_label_rekon:
+            st.markdown(f"**_(sampai dengan bulan {bulan_label_rekon[-1]})_**")
+
+        st.markdown(
+            f"<h2 style='color:red; font-weight:bold;'>Rp{total_kumulatif:,.0f}</h2>",
+            unsafe_allow_html=True
+        ). 
