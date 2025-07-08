@@ -135,4 +135,4 @@ with col2:
         st.markdown(
             f"<h2 style='color:red; font-weight:bold;'>Rp{total_kumulatif:,.0f}</h2>",
             unsafe_allow_html=True
-        )
+        ). 
