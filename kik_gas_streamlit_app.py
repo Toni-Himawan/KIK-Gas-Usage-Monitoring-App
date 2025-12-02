@@ -6,6 +6,17 @@ st.set_page_config(layout="wide")  # Layout full width supaya tampilan lebar
 
 st.title("KIK Monthly Usage of 12 Tenants")
 
+# === FUNGSI FAKTOR 0.6 / 0.8 ===
+def get_factor(bulan_excel):
+    try:
+        t = pd.to_datetime(bulan_excel)
+        # Mulai Juli 2025 → faktor 0.8
+        if t.year == 2025 and t.month >= 7:
+            return 0.8
+        return 0.6
+    except:
+        return 0.6
+
 # Membuat 2 kolom: kiri untuk uploader, kanan untuk konten
 col1, col2 = st.columns([1, 3])  # Kolom kiri lebih kecil dari kanan
 
@@ -70,15 +81,19 @@ with col2:
             try:
                 kurs = float(df_jisdor.loc[df_jisdor["Bulan"] == selected_bulan, "Kurs"].values[0])
                 total_pemakaian = round(df_gas[selected_bulan].sum(), 2)
-                nilai_usd = total_pemakaian * 0.6 * kurs
+
+                # === FAKTOR BARU ===
+                factor = get_factor(selected_bulan)
+
+                nilai_usd = total_pemakaian * factor * kurs
                 pemanfaatan = round(nilai_usd - 73000000, 2)
+
                 st.subheader(f"Total Nilai Rekonsiliasi {selected_label}")
                 st.markdown(f"<span style='font-size:20px;'>Total Pemakaian: <b>{total_pemakaian:.2f} MMBTU</b></span>", unsafe_allow_html=True)
                 st.markdown(f"<span style='font-size:20px;'>Nilai Rekonsiliasi: <b>Rp {pemanfaatan:,.0f}</b></span>", unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Gagal menghitung pemanfaatan: {e}")
 
-            # Garis pemisah antar bagian supaya pembaca jelas ini data berbeda
             st.markdown("<hr style='border: 2px solid #333; margin: 30px 0;'>", unsafe_allow_html=True)
 
         bulan_2025 = [b for b in bulan_asli if pd.to_datetime(b, errors='coerce') is not pd.NaT and pd.to_datetime(b).year == 2025]
@@ -119,11 +134,16 @@ with col2:
         for b in bulan_tersedia:
             try:
                 kurs = float(df_jisdor.loc[df_jisdor["Bulan"] == b, "Kurs"].values[0])
-                rekon = df_gas[b] * 0.6 * kurs - (73000000 / len(df_gas))
+
+                # === FAKTOR BARU ===
+                factor = get_factor(b)
+
+                rekon = df_gas[b] * factor * kurs - (73000000 / len(df_gas))
                 df_rekon[mapping_kolom[b]] = rekon
                 bulan_label_rekon.append(mapping_kolom[b])
             except:
                 continue
+
         df_rekon["Tenant"] = df_gas["Tenant"]
         df_rekon = df_rekon.set_index("Tenant")
 
@@ -135,4 +155,4 @@ with col2:
         st.markdown(
             f"<h2 style='color:red; font-weight:bold;'>Rp{total_kumulatif:,.0f}</h2>",
             unsafe_allow_html=True
-        ). 
+        )
